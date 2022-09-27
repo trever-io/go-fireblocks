@@ -11,12 +11,12 @@ const (
 )
 
 type Asset struct {
-	Id              string `json:"id"`
-	Name            string `json:"name"`
-	Type            string `json:"type"`
-	ContractAddress string `json:"contractAddress"`
-	NativeAsset     string `json:"nativeAsset"`
-	Decimals        string `json:"decimals"`
+	Id              string  `json:"id"`
+	Name            string  `json:"name"`
+	Type            string  `json:"type"`
+	ContractAddress string  `json:"contractAddress"`
+	NativeAsset     string  `json:"nativeAsset"`
+	Decimals        float64 `json:"decimals"`
 }
 
 func (c *client) GetSupportedAssets(ctx context.Context) ([]*Asset, error) {

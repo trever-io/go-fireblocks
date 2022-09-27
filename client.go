@@ -39,9 +39,15 @@ func (e *Error) Error() string {
 type Client interface {
 	ListInternalWallets(ctx context.Context) ([]*InternalWallet, error)
 	CreateInternalWallet(ctx context.Context, req *CreateInternalWalletRequest) (*InternalWallet, error)
+	ListExternalWallets(ctx context.Context) ([]*ExternalWallet, error)
 	GetSupportedAssets(ctx context.Context) ([]*Asset, error)
-	ListTransactions(ctx context.Context, opts *GetWithdrawalHistoryOptions) ([]*Transaction, error)
-	CreateTransactions(ctx context.Context, req *TransactionRequest) (*TransactionResponse, error)
+	ListTransactions(ctx context.Context, opts *GetHistoryOptions) ([]*Transaction, error)
+	CreateTransaction(ctx context.Context, req *TransactionRequest) (*TransactionResponse, error)
+	ListVaultAccounts(ctx context.Context) (*VaultAccountsPagedResponse, error)
+	CreateWalletInVault(ctx context.Context, req *CreateWalletInVault) (*CreateVaultAssetResponse, error)
+	GetBalanceByAsset(ctx context.Context) ([]*AssetInformation, error)
+	RetrieveVaultAccount(ctx context.Context, id string) (*VaultAccount, error)
+	GetTransactionById(ctx context.Context, id string) (*Transaction, error)
 }
 
 type client struct {
@@ -142,12 +148,10 @@ func (c *client) getRequest(ctx context.Context, uri string) ([]byte, error) {
 func (c *client) getRequestWithQuery(ctx context.Context, endpoint string, queryParameters map[string]string) ([]byte, error) {
 	query := url.Values{}
 	for key, value := range queryParameters {
-		if !query.Has(key) {
-			query.Set(key, value)
-		}
 
 		query.Add(key, value)
 	}
+
 	uri := fmt.Sprintf("%v?%v", endpoint, query.Encode())
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%v%v", BASE_URL, uri), nil)
 	if err != nil {
