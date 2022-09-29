@@ -20,7 +20,7 @@ type Asset struct {
 }
 
 func (c *client) GetSupportedAssets(ctx context.Context) ([]*Asset, error) {
-	data, err := c.getRequest(ctx, SUPPORTED_ASSETS)
+	data, _, err := c.getRequest(ctx, SUPPORTED_ASSETS)
 	if err != nil {
 		return nil, fmt.Errorf("error during list supported assets: %w", err)
 	}

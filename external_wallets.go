@@ -26,7 +26,7 @@ type ExternalWallet struct {
 }
 
 func (c *client) ListExternalWallets(ctx context.Context) ([]*ExternalWallet, error) {
-	data, err := c.getRequest(ctx, LIST_EXTERNAL_WALLETS)
+	data, _, err := c.getRequest(ctx, LIST_EXTERNAL_WALLETS)
 	if err != nil {
 		return nil, fmt.Errorf("error during list external wallets: %w", err)
 	}

@@ -66,7 +66,7 @@ func (c *client) ListVaultAccounts(ctx context.Context) (*VaultAccountsPagedResp
 
 	for {
 		nextUrl := strings.ReplaceAll(resp.NextUrl, BASE_URL, "")
-		data, err := c.getRequest(ctx, nextUrl)
+		data, _, err := c.getRequest(ctx, nextUrl)
 		if err != nil {
 			return nil, fmt.Errorf("error during list vault accounts: %w", err)
 		}
@@ -92,7 +92,7 @@ func (c *client) ListVaultAccounts(ctx context.Context) (*VaultAccountsPagedResp
 
 func (c *client) CreateWalletInVault(ctx context.Context, req *CreateWalletInVault) (*CreateVaultAssetResponse, error) {
 	uri := fmt.Sprintf("%v/%v/%v", VAULT_ACCOUNTS, req.VaultAccountId, req.AssetId)
-	data, err := c.postRequest(ctx, uri, req)
+	data, _, err := c.postRequest(ctx, uri, req)
 	if err != nil {
 		return nil, fmt.Errorf("error during create wallet in vault: %w", err)
 	}
@@ -107,7 +107,7 @@ func (c *client) CreateWalletInVault(ctx context.Context, req *CreateWalletInVau
 }
 
 func (c *client) GetBalanceByAsset(ctx context.Context) ([]*AssetInformation, error) {
-	data, err := c.getRequest(ctx, VAULT_ASSETS)
+	data, _, err := c.getRequest(ctx, VAULT_ASSETS)
 	if err != nil {
 		return nil, fmt.Errorf("error during list balance by asset: %w", err)
 	}
@@ -123,7 +123,7 @@ func (c *client) GetBalanceByAsset(ctx context.Context) ([]*AssetInformation, er
 
 func (c *client) RetrieveVaultAccount(ctx context.Context, id string) (*VaultAccount, error) {
 	uri := fmt.Sprintf("%v/%v", VAULT_ACCOUNTS, id)
-	data, err := c.getRequest(ctx, uri)
+	data, _, err := c.getRequest(ctx, uri)
 	if err != nil {
 		return nil, fmt.Errorf("error during retrieve vault account: %w", err)
 	}

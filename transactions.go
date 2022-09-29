@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 const (
-	LIST_TRANSACTION   = "/v1/transactions"
-	CREATE_TRANSACTION = "/v1/transactions"
+	LIST_TRANSACTION          = "/v1/transactions"
+	CREATE_TRANSACTION        = "/v1/transactions"
+	DEFAULT_TRANSACTION_LIMIT = 200
 )
 
 type TransactionRequest struct {
@@ -22,6 +24,10 @@ type TransactionRequest struct {
 type TransactionResponse struct {
 	Id     string `json:"id"`
 	Status string `json:"status"`
+}
+
+type ResponseHeader struct {
+	NextPage string `json:"next_page"`
 }
 
 type Transaction struct {
@@ -58,24 +64,47 @@ func (c *client) ListTransactions(ctx context.Context, opts *GetHistoryOptions) 
 		"after":  strconv.FormatInt(opts.StartTime, 10),
 		"before": strconv.FormatInt(opts.EndTime, 10),
 	}
-	data, err := c.getRequestWithQuery(ctx, LIST_TRANSACTION, queryParameters)
 
-	if err != nil {
-		return nil, fmt.Errorf("error during list transactions: %w", err)
+	header := &ResponseHeader{
+		NextPage: fmt.Sprintf("%v%v", BASE_URL, LIST_TRANSACTION),
+	}
+	transactions := make([]*Transaction, 0)
+
+	for {
+		nextUrl := strings.ReplaceAll(header.NextPage, BASE_URL, "")
+		data, nextPage, err := c.getRequestWithQuery(ctx, nextUrl, queryParameters)
+		if err != nil {
+			return nil, fmt.Errorf("error during list transactions: %w", err)
+		}
+
+		tmp := make([]*Transaction, 0)
+		err = json.Unmarshal(data, &tmp)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshaling response: %w", err)
+		}
+
+		if len(tmp) < DEFAULT_TRANSACTION_LIMIT {
+			transactions = append(transactions, tmp...)
+			break
+		}
+
+		h := new(ResponseHeader)
+		err = json.Unmarshal(nextPage, h)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshaling header response: %w", err)
+		}
+
+		header.NextPage = h.NextPage
+		transactions = append(transactions, tmp...)
+
 	}
 
-	tmp := make([]*Transaction, 0)
-	err = json.Unmarshal(data, &tmp)
-	if err != nil {
-		return nil, fmt.Errorf("error unmarshaling response: %w", err)
-	}
-
-	return tmp, nil
+	return transactions, nil
 }
 
 func (c *client) GetTransactionById(ctx context.Context, id string) (*Transaction, error) {
 	uri := fmt.Sprintf("%v/%v", LIST_TRANSACTION, id)
-	data, err := c.getRequest(ctx, uri)
+	data, _, err := c.getRequest(ctx, uri)
 
 	if err != nil {
 		return nil, fmt.Errorf("error during list transaction: %w", err)
@@ -91,7 +120,7 @@ func (c *client) GetTransactionById(ctx context.Context, id string) (*Transactio
 }
 
 func (c *client) CreateTransaction(ctx context.Context, req *TransactionRequest) (*TransactionResponse, error) {
-	data, err := c.postRequest(ctx, CREATE_TRANSACTION, req)
+	data, _, err := c.postRequest(ctx, CREATE_TRANSACTION, req)
 	if err != nil {
 		return nil, fmt.Errorf("error during create transaction: %w", err)
 	}
