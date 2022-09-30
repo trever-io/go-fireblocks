@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	LIST_INTERNAL_VALLETS  = "/v1/internal_wallets"
+	LIST_INTERNAL_WALLETS  = "/v1/internal_wallets"
 	CREATE_INTERNAL_WALLET = "/v1/internal_wallets"
 )
 
@@ -34,7 +34,7 @@ type CreateInternalWalletRequest struct {
 }
 
 func (c *client) ListInternalWallets(ctx context.Context) ([]*InternalWallet, error) {
-	data, err := c.getRequest(ctx, LIST_INTERNAL_VALLETS)
+	data, _, err := c.getRequest(ctx, LIST_INTERNAL_WALLETS)
 	if err != nil {
 		return nil, fmt.Errorf("error during list internal wallets: %w", err)
 	}
@@ -49,7 +49,7 @@ func (c *client) ListInternalWallets(ctx context.Context) ([]*InternalWallet, er
 }
 
 func (c *client) CreateInternalWallet(ctx context.Context, req *CreateInternalWalletRequest) (*InternalWallet, error) {
-	data, err := c.postRequest(ctx, CREATE_INTERNAL_WALLET, req)
+	data, _, err := c.postRequest(ctx, CREATE_INTERNAL_WALLET, req)
 	if err != nil {
 		return nil, fmt.Errorf("error during create internal wallet: %w", err)
 	}

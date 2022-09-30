@@ -14,6 +14,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -38,6 +39,15 @@ func (e *Error) Error() string {
 type Client interface {
 	ListInternalWallets(ctx context.Context) ([]*InternalWallet, error)
 	CreateInternalWallet(ctx context.Context, req *CreateInternalWalletRequest) (*InternalWallet, error)
+	ListExternalWallets(ctx context.Context) ([]*ExternalWallet, error)
+	GetSupportedAssets(ctx context.Context) ([]*Asset, error)
+	ListTransactions(ctx context.Context, opts *GetHistoryOptions) ([]*Transaction, error)
+	CreateTransaction(ctx context.Context, req *TransactionRequest) (*TransactionResponse, error)
+	ListVaultAccounts(ctx context.Context) (*VaultAccountsPagedResponse, error)
+	CreateWalletInVault(ctx context.Context, req *CreateWalletInVault) (*CreateVaultAssetResponse, error)
+	GetBalanceByAsset(ctx context.Context) ([]*AssetInformation, error)
+	RetrieveVaultAccount(ctx context.Context, id string) (*VaultAccount, error)
+	GetTransactionById(ctx context.Context, id string) (*Transaction, error)
 }
 
 type client struct {
@@ -121,49 +131,77 @@ func (c *client) signRequest(uri string, req *http.Request) error {
 	return nil
 }
 
-func (c *client) getRequest(ctx context.Context, uri string) ([]byte, error) {
+func (c *client) getRequest(ctx context.Context, uri string) ([]byte, []byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%v%v", BASE_URL, uri), nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating get request: %w", err)
+		return nil, nil, fmt.Errorf("error creating get request: %w", err)
 	}
 
 	err = c.signRequest(uri, req)
 	if err != nil {
-		return nil, fmt.Errorf("error signing request: %w", err)
+		return nil, nil, fmt.Errorf("error signing request: %w", err)
 	}
 
 	return c.doRequest(req)
 }
 
-func (c *client) postRequest(ctx context.Context, uri string, body any) ([]byte, error) {
+func (c *client) getRequestWithQuery(ctx context.Context, endpoint string, queryParameters map[string]string) ([]byte, []byte, error) {
+	query := url.Values{}
+	for key, value := range queryParameters {
+
+		query.Add(key, value)
+	}
+
+	uri := fmt.Sprintf("%v?%v", endpoint, query.Encode())
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%v%v", BASE_URL, uri), nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error creating get request: %w", err)
+	}
+
+	err = c.signRequest(uri, req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error signing request: %w", err)
+	}
+
+	return c.doRequest(req)
+}
+
+func (c *client) postRequest(ctx context.Context, uri string, body any) ([]byte, []byte, error) {
 	data, err := json.Marshal(body)
 	if err != nil {
-		return nil, fmt.Errorf("error marshaling request: %w", err)
+		return nil, nil, fmt.Errorf("error marshaling request: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%v%v", BASE_URL, uri), bytes.NewReader(data))
 	if err != nil {
-		return nil, fmt.Errorf("error creating post request: %w", err)
+		return nil, nil, fmt.Errorf("error creating post request: %w", err)
 	}
 
 	err = c.signRequest(uri, req)
 	if err != nil {
-		return nil, fmt.Errorf("error signing request: %w", err)
+		return nil, nil, fmt.Errorf("error signing request: %w", err)
 	}
 
 	return c.doRequest(req)
 }
 
-func (c *client) doRequest(req *http.Request) ([]byte, error) {
+func (c *client) doRequest(req *http.Request) ([]byte, []byte, error) {
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error during request: %w", err)
+		return nil, nil, fmt.Errorf("error during request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	b, err := ioutil.ReadAll(resp.Body)
+	fmt.Println(b)
 	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %w", err)
+		return nil, nil, fmt.Errorf("error reading response body: %w", err)
+	}
+
+	nextPage := resp.Header.Get("Next-Page")
+	h, err := json.Marshal(map[string]string{"next_page": nextPage})
+	if err != nil {
+		return nil, nil, fmt.Errorf("error reading response header: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -172,8 +210,8 @@ func (c *client) doRequest(req *http.Request) ([]byte, error) {
 			body:   string(b),
 		}
 
-		return nil, apiError
+		return nil, nil, apiError
 	}
 
-	return b, nil
+	return b, h, nil
 }
