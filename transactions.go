@@ -9,8 +9,7 @@ import (
 )
 
 const (
-	LIST_TRANSACTION          = "/v1/transactions"
-	CREATE_TRANSACTION        = "/v1/transactions"
+	TRANSACTION               = "/v1/transactions"
 	DEFAULT_TRANSACTION_LIMIT = 200
 )
 
@@ -31,16 +30,16 @@ type ResponseHeader struct {
 }
 
 type Transaction struct {
-	Id                 string           `json:"id"`
-	AssetId            string           `json:"assetId"`
-	Source             TransferPeerPath `json:"source"`
-	Destination        TransferPeerPath `json:"destination"`
-	Amount             float64          `json:"amount"`
-	NetworkFee         float64          `json:"networkFee"`
-	ServiceFee         float64          `json:"serviceFee"`
-	CreatedAt          int64            `json:"createdAt"`
-	Status             string           `json:"status"`
-	DestinationAddress string           `json:"destinationAddress"`
+	Id                 string                   `json:"id"`
+	AssetId            string                   `json:"assetId"`
+	Source             TransferPeerPathResponse `json:"source"`
+	Destination        TransferPeerPathResponse `json:"destination"`
+	Amount             float64                  `json:"amount"`
+	NetworkFee         float64                  `json:"networkFee"`
+	ServiceFee         float64                  `json:"serviceFee"`
+	CreatedAt          int64                    `json:"createdAt"`
+	Status             string                   `json:"status"`
+	DestinationAddress string                   `json:"destinationAddress"`
 }
 
 type GetHistoryOptions struct {
@@ -59,6 +58,12 @@ type DestinationTransferPeerPath struct {
 	OneTimeAddress string `json:"oneTimeAddress,omitempty"`
 }
 
+type TransferPeerPathResponse struct {
+	Type    string `json:"type"`
+	Id      string `json:"id"`
+	SubType string `json:"subType"`
+}
+
 func (c *client) ListTransactions(ctx context.Context, opts *GetHistoryOptions) ([]*Transaction, error) {
 	queryParameters := map[string]string{
 		"after":  strconv.FormatInt(opts.StartTime, 10),
@@ -66,7 +71,7 @@ func (c *client) ListTransactions(ctx context.Context, opts *GetHistoryOptions) 
 	}
 
 	header := &ResponseHeader{
-		NextPage: fmt.Sprintf("%v%v", BASE_URL, LIST_TRANSACTION),
+		NextPage: fmt.Sprintf("%v%v", BASE_URL, TRANSACTION),
 	}
 	transactions := make([]*Transaction, 0)
 
@@ -103,7 +108,7 @@ func (c *client) ListTransactions(ctx context.Context, opts *GetHistoryOptions) 
 }
 
 func (c *client) GetTransactionById(ctx context.Context, id string) (*Transaction, error) {
-	uri := fmt.Sprintf("%v/%v", LIST_TRANSACTION, id)
+	uri := fmt.Sprintf("%v/%v", TRANSACTION, id)
 	data, _, err := c.getRequest(ctx, uri)
 
 	if err != nil {
@@ -120,7 +125,7 @@ func (c *client) GetTransactionById(ctx context.Context, id string) (*Transactio
 }
 
 func (c *client) CreateTransaction(ctx context.Context, req *TransactionRequest) (*TransactionResponse, error) {
-	data, _, err := c.postRequest(ctx, CREATE_TRANSACTION, req)
+	data, _, err := c.postRequest(ctx, TRANSACTION, req)
 	if err != nil {
 		return nil, fmt.Errorf("error during create transaction: %w", err)
 	}
