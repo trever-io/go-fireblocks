@@ -48,6 +48,10 @@ type Client interface {
 	GetBalanceByAsset(ctx context.Context) ([]*AssetInformation, error)
 	RetrieveVaultAccount(ctx context.Context, id string) (*VaultAccount, error)
 	GetTransactionById(ctx context.Context, id string) (*Transaction, error)
+	ListFiatAccounts(ctx context.Context) ([]*FiatAccount, error)
+	RetrieveFiatAccount(ctx context.Context, id string) (*FiatAccount, error)
+	GetFiatAssets(ctx context.Context) ([]*Asset, error)
+	GetFiatAssetIds(ctx context.Context) ([]string, error)
 }
 
 type client struct {
@@ -193,7 +197,6 @@ func (c *client) doRequest(req *http.Request) ([]byte, []byte, error) {
 	defer resp.Body.Close()
 
 	b, err := ioutil.ReadAll(resp.Body)
-	fmt.Println(b)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error reading response body: %w", err)
 	}
